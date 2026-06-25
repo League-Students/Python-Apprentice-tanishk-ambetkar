@@ -243,7 +243,7 @@ def main():
             overlay.fill((0, 0, 0, 180)) # Dark transparent dimming filter
             screen.blit(overlay, (0, 0))
             
-            go_text = font_main.render("YOU WERE OVERRUN!", True, (255, 50, 50))
+            go_text = font_main.render("YOU lost!", True, (255, 50, 50))
             restart_text = font_sub.render("Press 'R' to Restart and Fight Again", True, COLOR_UI)
             
             screen.blit(go_text, (SCREEN_WIDTH // 2 - go_text.get_width() // 2, SCREEN_HEIGHT // 2 - 40))
