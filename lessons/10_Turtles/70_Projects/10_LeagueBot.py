@@ -19,7 +19,7 @@ COLOR_SWORD = (240, 240, 250) # Steel White
 COLOR_UI = (255, 255, 255)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Dungeon Combat: Fixed Hit Detection!")
+pygame.display.set_caption("Dungeon Combat: 180-Degree Cleave!")
 clock = pygame.time.Clock()
 font_main = pygame.font.SysFont("Arial", 28, bold=True)
 font_sub = pygame.font.SysFont("Arial", 20)
@@ -44,10 +44,27 @@ class Player:
         self.attack_timer = 0
         self.attack_duration = 12  # Frames the sword swings
         self.attack_cooldown = 0
-        self.sword_reach = 75      # Slightly increased reach for easier hitting
+        self.sword_reach = 85      # Reach of your 180 slash arc
 
     def draw(self):
-        # Draw Player Core Body Rectangle
+        center_x = self.x + self.width // 2
+        center_y = self.y + self.height // 2
+
+        # Draw Sword Swing Visual Arc (180 Degrees Forward)
+        if self.is_attacking:
+            # Create a bounding surface box for the arc outline
+            arc_rect = pygame.Rect(center_x - self.sword_reach, center_y - self.sword_reach, 
+                                   self.sword_reach * 2, self.sword_reach * 2)
+            
+            # Draw semi-circle lines using radians based on direction face
+            if self.direction == "right":
+                # -90 degrees (-pi/2) to 90 degrees (pi/2)
+                pygame.draw.arc(screen, COLOR_SWORD, arc_rect, -math.pi/2, math.pi/2, 5)
+            else:
+                # 90 degrees (pi/2) to 270 degrees (3pi/2)
+                pygame.draw.arc(screen, COLOR_SWORD, arc_rect, math.pi/2, 3*math.pi/2, 5)
+
+        # Draw Player Core Body Rectangle over the arc layer
         player_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(screen, COLOR_PLAYER, player_rect, border_radius=6)
         
@@ -57,13 +74,6 @@ class Player:
             pygame.draw.rect(screen, (255, 255, 0), (self.x + self.width - 12, eye_y, 8, 6))
         else:
             pygame.draw.rect(screen, (255, 255, 0), (self.x + 4, eye_y, 8, 6))
-
-        # --- FIXED: Visual Feedback ---
-        # Draw a clear 360-degree shockwave circle centered on the player when attacking
-        if self.is_attacking:
-            center_x = self.x + self.width // 2
-            center_y = self.y + self.height // 2
-            pygame.draw.circle(screen, COLOR_SWORD, (center_x, center_y), self.sword_reach, 4)
 
     def update(self, keys):
         # Movement controls
@@ -81,7 +91,7 @@ class Player:
 
         # Screen boundaries check
         self.x = max(0, min(SCREEN_WIDTH - self.width, self.x + dx))
-        self.y = max(80, min(SCREEN_HEIGHT - self.height, self.y + dy)) # Leave top room for UI
+        self.y = max(80, min(SCREEN_HEIGHT - self.height, self.y + dy))
 
         # Timers tracking
         if self.attack_cooldown > 0:
@@ -96,14 +106,14 @@ class Player:
         if self.attack_cooldown == 0 and not self.is_attacking:
             self.is_attacking = True
             self.attack_timer = self.attack_duration
-            self.attack_cooldown = 15  # Slightly lowered cooldown for better responsiveness
+            self.attack_cooldown = 15
 
 class Enemy:
     def __init__(self, player_x, player_y):
         self.width = 35
         self.height = 45
         
-        # Spawn enemies randomly along perimeter edges to avoid dropping directly on player
+        # Spawn enemies randomly along perimeter edges
         if random.choice([True, False]):
             self.x = random.choice([-50, SCREEN_WIDTH + 50])
             self.y = random.randint(100, SCREEN_HEIGHT - 50)
@@ -191,24 +201,29 @@ def main():
                     if player.hp <= 0:
                         game_over = True
 
-                # --- FIXED: Mathematical Distance-Based Hit Detection ---
+                # --- 180-DEGREE HIT DETECTION ---
                 if player.is_attacking:
-                    # Calculate center position of both player and enemy
                     p_center_x = player.x + player.width // 2
                     p_center_y = player.y + player.height // 2
                     e_center_x = enemy.x + enemy.width // 2
                     e_center_y = enemy.y + enemy.height // 2
                     
-                    # Calculate distance between them
+                    # Calculate distance to enemy
                     distance = math.hypot(e_center_x - p_center_x, e_center_y - p_center_y)
                     
-                    # If enemy is inside your 360-degree weapon bubble, it takes one-shot damage
                     if distance <= player.sword_reach:
-                        enemy.hp -= 30  
-                        if enemy.hp <= 0:
-                            if enemy in enemies:
-                                enemies.remove(enemy)
-                            score += 50
+                        # Check horizontal direction threshold relative to center points
+                        is_enemy_on_right = (e_center_x >= p_center_x)
+                        
+                        # Hit connects if enemy position aligns with player direction
+                        if (player.direction == "right" and is_enemy_on_right) or \
+                           (player.direction == "left" and not is_enemy_on_right):
+                            
+                            enemy.hp -= 30  
+                            if enemy.hp <= 0:
+                                if enemy in enemies:
+                                    enemies.remove(enemy)
+                                score += 50
 
         # --- DRAW VISUAL LAYERS ---
         for enemy in enemies:
