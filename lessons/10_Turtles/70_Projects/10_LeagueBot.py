@@ -33,7 +33,7 @@ class Player:
         self.y = SCREEN_HEIGHT // 2
         self.speed = 5
         
-        # --- BUFFED HEALTH VALUES (5x original health) ---
+        # Buffed Health Values (5x original health)
         self.hp = 500          
         self.max_hp = 500      
         
@@ -210,7 +210,8 @@ def main():
                         hitbox = pygame.Rect(player.x - player.sword_reach, sword_y - 20, player.sword_reach, 40)
 
                     if hitbox.colliderect(e_rect):
-                        enemy.hp -= 15  # Deal damage
+                        # --- MODIFIED: ONE-SHOT DAMAGE VALUE ---
+                        enemy.hp -= 30  # Increased from 15 to completely match enemy max HP
                         if enemy.hp <= 0:
                             enemies.remove(enemy)
                             score += 50
@@ -243,7 +244,7 @@ def main():
             overlay.fill((0, 0, 0, 180)) # Dark transparent dimming filter
             screen.blit(overlay, (0, 0))
             
-            go_text = font_main.render("YOU lost!", True, (255, 50, 50))
+            go_text = font_main.render("YOU WERE OVERRUN!", True, (255, 50, 50))
             restart_text = font_sub.render("Press 'R' to Restart and Fight Again", True, COLOR_UI)
             
             screen.blit(go_text, (SCREEN_WIDTH // 2 - go_text.get_width() // 2, SCREEN_HEIGHT // 2 - 40))
