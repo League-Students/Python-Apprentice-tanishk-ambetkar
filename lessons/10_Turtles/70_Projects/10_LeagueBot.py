@@ -19,7 +19,7 @@ COLOR_SWORD = (240, 240, 250) # Steel White
 COLOR_UI = (255, 255, 255)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Dungeon Combat: Defeat the Horde!")
+pygame.display.set_caption("Dungeon Combat: Fixed Hit Detection!")
 clock = pygame.time.Clock()
 font_main = pygame.font.SysFont("Arial", 28, bold=True)
 font_sub = pygame.font.SysFont("Arial", 20)
@@ -44,7 +44,7 @@ class Player:
         self.attack_timer = 0
         self.attack_duration = 12  # Frames the sword swings
         self.attack_cooldown = 0
-        self.sword_reach = 65
+        self.sword_reach = 75      # Slightly increased reach for easier hitting
 
     def draw(self):
         # Draw Player Core Body Rectangle
@@ -58,15 +58,12 @@ class Player:
         else:
             pygame.draw.rect(screen, (255, 255, 0), (self.x + 4, eye_y, 8, 6))
 
-        # Draw Sword Swing Visual Arc
+        # --- FIXED: Visual Feedback ---
+        # Draw a clear 360-degree shockwave circle centered on the player when attacking
         if self.is_attacking:
-            sword_y = self.y + self.height // 2
-            # Swing right or left depending on direction face
-            if self.direction == "right":
-                sword_rect = pygame.Rect(self.x + self.width, sword_y - 15, self.sword_reach, 30)
-            else:
-                sword_rect = pygame.Rect(self.x - self.sword_reach, sword_y - 15, self.sword_reach, 30)
-            pygame.draw.ellipse(screen, COLOR_SWORD, sword_rect)
+            center_x = self.x + self.width // 2
+            center_y = self.y + self.height // 2
+            pygame.draw.circle(screen, COLOR_SWORD, (center_x, center_y), self.sword_reach, 4)
 
     def update(self, keys):
         # Movement controls
@@ -99,7 +96,7 @@ class Player:
         if self.attack_cooldown == 0 and not self.is_attacking:
             self.is_attacking = True
             self.attack_timer = self.attack_duration
-            self.attack_cooldown = 20  # Delay before next allowed attack
+            self.attack_cooldown = 15  # Slightly lowered cooldown for better responsiveness
 
 class Enemy:
     def __init__(self, player_x, player_y):
@@ -153,7 +150,6 @@ def main():
     game_over = False
 
     def spawn_wave(wave_num):
-        # Total enemies scaling dynamically based on current level round
         count = 3 + (wave_num * 2)
         for _ in range(count):
             enemies.append(Enemy(player.x, player.y))
@@ -164,26 +160,21 @@ def main():
         clock.tick(FPS)
         screen.fill(COLOR_BG)
 
-        # Event tracking loop
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
                 
             if event.type == pygame.KEYDOWN:
-                # Trigger sword swing attack
                 if event.key == pygame.K_SPACE and not game_over:
                     player.attack()
-                # Restart hotkey command logic
                 if event.key == pygame.K_r and game_over:
                     main()
 
         if not game_over:
-            # Dynamic movement engine inputs
             keys = pygame.key.get_pressed()
             player.update(keys)
 
-            # Check if all enemies defeated -> Next Wave
             if len(enemies) == 0:
                 wave += 1
                 spawn_wave(wave)
@@ -192,7 +183,7 @@ def main():
             for enemy in enemies[:]:
                 enemy.move_towards_player(player)
 
-                # 1. Collision check: Enemy hits player shield/armor
+                # 1. Collision check: Enemy hits player
                 p_rect = pygame.Rect(player.x, player.y, player.width, player.height)
                 e_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
                 if p_rect.colliderect(e_rect):
@@ -200,39 +191,41 @@ def main():
                     if player.hp <= 0:
                         game_over = True
 
-                # 2. Collision check: Player sword swing strikes enemy body
-                if player.is_attacking and player.attack_timer == player.attack_duration:
-                    # Establish physical rectangle of weapon sweep reach zone
-                    sword_y = player.y + player.height // 2
-                    if player.direction == "right":
-                        hitbox = pygame.Rect(player.x + player.width, sword_y - 20, player.sword_reach, 40)
-                    else:
-                        hitbox = pygame.Rect(player.x - player.sword_reach, sword_y - 20, player.sword_reach, 40)
-
-                    if hitbox.colliderect(e_rect):
-                        # --- MODIFIED: ONE-SHOT DAMAGE VALUE ---
-                        enemy.hp -= 30  # Increased from 15 to completely match enemy max HP
+                # --- FIXED: Mathematical Distance-Based Hit Detection ---
+                if player.is_attacking:
+                    # Calculate center position of both player and enemy
+                    p_center_x = player.x + player.width // 2
+                    p_center_y = player.y + player.height // 2
+                    e_center_x = enemy.x + enemy.width // 2
+                    e_center_y = enemy.y + enemy.height // 2
+                    
+                    # Calculate distance between them
+                    distance = math.hypot(e_center_x - p_center_x, e_center_y - p_center_y)
+                    
+                    # If enemy is inside your 360-degree weapon bubble, it takes one-shot damage
+                    if distance <= player.sword_reach:
+                        enemy.hp -= 30  
                         if enemy.hp <= 0:
-                            enemies.remove(enemy)
+                            if enemy in enemies:
+                                enemies.remove(enemy)
                             score += 50
 
         # --- DRAW VISUAL LAYERS ---
-        # Draw actors
         for enemy in enemies:
             enemy.draw()
         player.draw()
 
-        # Draw HUD interface header bar background
+        # HUD header bar
         pygame.draw.rect(screen, (15, 10, 20), (0, 0, SCREEN_WIDTH, 70))
         
-        # Draw Player HP bar layout
+        # Player HP bar
         hp_text = font_sub.render(f"HP: {max(0, player.hp)} / {player.max_hp}", True, COLOR_UI)
         screen.blit(hp_text, (20, 22))
-        pygame.draw.rect(screen, (80, 20, 20), (180, 25, 200, 16)) # Red backing fill
+        pygame.draw.rect(screen, (80, 20, 20), (180, 25, 200, 16))
         player_hp_w = max(0, int(200 * (player.hp / player.max_hp)))
-        pygame.draw.rect(screen, (50, 220, 90), (180, 25, player_hp_w, 16)) # Live green foreground
+        pygame.draw.rect(screen, (50, 220, 90), (180, 25, player_hp_w, 16))
 
-        # Draw HUD text elements
+        # HUD text
         score_surface = font_main.render(f"SCORE: {score}", True, COLOR_UI)
         wave_surface = font_main.render(f"WAVE: {wave}", True, (230, 180, 50))
         screen.blit(score_surface, (420, 18))
@@ -241,7 +234,7 @@ def main():
         # Game Over Interface Overlay
         if game_over:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 180)) # Dark transparent dimming filter
+            overlay.fill((0, 0, 0, 180))
             screen.blit(overlay, (0, 0))
             
             go_text = font_main.render("YOU WERE OVERRUN!", True, (255, 50, 50))
