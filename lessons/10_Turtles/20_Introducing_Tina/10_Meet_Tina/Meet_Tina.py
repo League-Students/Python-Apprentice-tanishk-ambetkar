@@ -1,100 +1,172 @@
-"""
-# Meet_Tina.py
+import pygame
+import random
+import sys
 
-This program draws Tina: a turtle with a hexagon-shaped green shell, four brown legs, a head, and a tail.
+# 1. Initialize Pygame engine
+pygame.init()
 
-There are two ways to run this program:
-1. Click the 'Run' (▶) button at the top of your editor window OR in the bottom left corner.
-2. Press the F5 key (in editors like VS Code, Thonny, or GitHub Codespaces).
+# Game Window Constants
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+FPS = 60
 
-You don't need to understand all of this yet. Later lessons will walk through it piece by piece.
-"""
+# Design Elements (RGB Colors)
+COLOR_BLACK = (0, 0, 0)
+COLOR_WHITE = (255, 255, 255)
+COLOR_GREEN = (0, 255, 0)
+COLOR_RED = (255, 0, 0)
+COLOR_YELLOW = (255, 255, 0)
 
-import turtle                           # Tell Python we want to work with the turtle
-from math import radians, tan
+# Set up display surface
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Space Arcade Shooter")
+clock = pygame.time.Clock()
+font = pygame.font.SysFont("Arial", 30)
 
-turtle.setup(600, 600, 0, 0)            # Set the size of the window
+# 2. Define Game Classes
+class Player:
+    def __init__(self):
+        self.width = 50
+        self.height = 40
+        self.x = SCREEN_WIDTH // 2 - self.width // 2
+        self.y = SCREEN_HEIGHT - 60
+        self.speed = 7
 
-tina = turtle.Turtle()                  # Create a turtle named tina
+    def draw(self):
+        # Draw player as a sleek green spaceship triangle/polygon
+        points = [
+            (self.x + self.width // 2, self.y), 
+            (self.x, self.y + self.height), 
+            (self.x + self.width, self.y + self.height)
+        ]
+        pygame.draw.polygon(screen, COLOR_GREEN, points)
 
-tina.speed('fastest')                   # Set the speed of the turtle to fastest
+    def move(self, keys):
+        if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and self.x > 0:
+            self.x -= self.speed
+        if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and self.x < SCREEN_WIDTH - self.width:
+            self.x += self.speed
 
-# Draw the hexagon
-tina.penup()                            # Lift the pen up so we can move tina without drawing
-tina.goto(-100, 175)                    # Move tina to the starting position
-tina.pendown()
-tina.begin_fill()
+class Laser:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = 4
+        self.height = 15
+        self.speed = 10
 
-def head_pos(l=200):
-    """ Position of tina's head, relative to the center of the screen"""
-    return (l/2) / tan(radians(30))
+    def draw(self):
+        pygame.draw.rect(screen, COLOR_YELLOW, (self.x, self.y, self.width, self.height))
 
-def draw_body(t, l=200):
-    """Draw the body of the turtle"""
-    t.pencolor('green')                  # Set the pen color to green
-    t.fillcolor('green')                 # Set the fill color to green
-    t.penup()
-    t.goto(0,0)                          # Move tina to the center of the screen
-    t.setheading(-90)                    # Set the heading of tina to -90 degrees
-    t.forward(head_pos(l))               # Move tina forward by the head position
-    t.right(90)                          # Turn tina right by 90 degrees
-    t.backward( l/2 )                    # Move tina backward by half the length
-    t.pendown()
-    t.begin_fill()
+    def update(self):
+        self.y -= self.speed
+
+class Enemy:
+    def __init__(self):
+        self.width = 40
+        self.height = 30
+        self.x = random.randint(0, SCREEN_WIDTH - self.width)
+        self.y = random.randint(-150, -40)
+        self.speed = random.randint(3, 6)
+
+    def draw(self):
+        pygame.draw.rect(screen, COLOR_RED, (self.x, self.y, self.width, self.height), border_radius=5)
+
+    def update(self):
+        self.y += self.speed
+
+# 3. Main Game Loop Setup
+def main():
+    player = Player()
+    lasers = []
+    enemies = []
+    score = 0
+    game_over = False
+
+    # Spawn initial wave of enemies
     for _ in range(6):
-        t.forward(l)                     # Move tina forward by the length
-        t.right(60)                      # Turn tina right by 60 degrees
-    t.end_fill()
+        enemies.append(Enemy())
 
-def draw_leg(t, a, r=170, w=40, l=50):
-    """Draw A Leg"""
-    t.penup()
-    t.goto(0, 0)                         # Move tina to the center of the screen
-    t.setheading(a)                      # Set the heading of tina to the angle
-    t.forward(r)                         # Move tina forward by the radius
-    t.pendown()
-    t.pencolor('brown')                  # Set the pen color to brown
-    t.fillcolor('brown')                 # Set the fill color to brown
-    t.begin_fill()
-    t.left(90)                           # Turn tina left by 90 degrees
-    t.forward(w/2)                       # Move tina forward by half the width
-    t.right(90)                          # Turn tina right by 90 degrees
-    t.forward(l)                         # Move tina forward by the length
-    t.right(90)                          # Turn tina right by 90 degrees
-    t.forward(w)                         # Move tina forward by the width
-    t.right(90)                          # Turn tina right by 90 degrees
-    t.forward(l)                         # Move tina forward by the length
-    t.right(90)                          # Turn tina right by 90 degrees
-    t.forward(w/2)                       # Move tina forward by half the width
-    t.end_fill()
+    while True:
+        # Tick the clock to lock frame rate
+        clock.tick(FPS)
+        screen.fill(COLOR_BLACK)
 
-def draw_head(t):
-    """Draw a brown head at the head position"""
-    t.penup()
-    t.goto(0, head_pos()-20)             # Move tina to the head position
-    t.pendown()
-    t.pencolor('brown')                  # Set the pen color to brown
-    t.fillcolor('brown')                 # Set the fill color to brown
-    t.begin_fill()
-    t.circle(50)                         # Draw a circle with radius 50
-    t.end_fill()
+        # Handle Events (Input Monitoring)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            # Fire lasers when Spacebar is pressed
+            if event.type == pygame.KEYDOWN and not game_over:
+                if event.key == pygame.K_SPACE:
+                    laser_x = player.x + player.width // 2 - 2
+                    lasers.append(Laser(laser_x, player.y))
+                
+                # Restart game tracking if player presses R after dying
+                if event.key == pygame.K_r and game_over:
+                    main()
 
-def say_hello(t):
-    """Make tina say hello, with text to the right of her head"""
-    t.penup()
-    t.goto(75, head_pos()+75)            # Move tina to the position for the text
-    t.pendown()
-    t.write("Hello! I'm Tina!", font=("Arial", 20, "normal"))  # Write the text
+        if not game_over:
+            # Read continuous keyboard movement inputs
+            keys = pygame.key.get_pressed()
+            player.move(keys)
 
-draw_head(tina)
+            # Update Lasers position and cleanup offscreen objects
+            for laser in lasers[:]:
+                laser.update()
+                if laser.y < 0:
+                    lasers.remove(laser)
 
-for lp in (30, -30, -150, 150):
-    draw_leg(tina, lp)                   # Draw the legs at the specified angles
+            # Update Enemy positions
+            for enemy in enemies[:]:
+                enemy.update()
+                
+                # Respawn enemy at top if it flies past bottom boundary
+                if enemy.y > SCREEN_HEIGHT:
+                    enemies.remove(enemy)
+                    enemies.append(Enemy())
 
-draw_leg(tina, -90, r=170, w=10, l=50)   # This one is actually a tail!
+                # Game Over condition: Enemy collides with the player spaceship
+                player_rect = pygame.Rect(player.x, player.y, player.width, player.height)
+                enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
+                if player_rect.colliderect(enemy_rect):
+                    game_over = True
 
-draw_body(tina)                          # Draw the body of the turtle
+            # Collision Detection: Check if Lasers hit Enemies
+            for laser in lasers[:]:
+                laser_rect = pygame.Rect(laser.x, laser.y, laser.width, laser.height)
+                for enemy in enemies[:]:
+                    enemy_rect = pygame.Rect(enemy.x, enemy.y, enemy.width, enemy.height)
+                    
+                    if laser_rect.colliderect(enemy_rect):
+                        # Safely remove components from active tracking lists
+                        if laser in lasers:
+                            lasers.remove(laser)
+                        enemies.remove(enemy)
+                        score += 10
+                        enemies.append(Enemy()) # Spawn replacement enemy
 
-say_hello(tina)                          # Make tina say hello
+        # 4. Render Game Objects on Screen
+        player.draw()
+        for laser in lasers:
+            laser.draw()
+        for enemy in enemies:
+            enemy.draw()
 
-turtle.exitonclick()                     # Close the window when we click on it
+        # Display the live scoreboard layout
+        score_text = font.render(f"Score: {score}", True, COLOR_WHITE)
+        screen.blit(score_text, (10, 10))
+
+        # Render Game Over UI Overlay
+        if game_over:
+            over_text = font.render("GAME OVER - Press 'R' to Restart", True, COLOR_RED)
+            text_rect = over_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+            screen.blit(over_text, text_rect)
+
+        # Flip display buffer to show new frames
+        pygame.display.flip()
+
+if __name__ == "__main__":
+    main()
