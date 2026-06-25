@@ -32,8 +32,11 @@ class Player:
         self.x = SCREEN_WIDTH // 2
         self.y = SCREEN_HEIGHT // 2
         self.speed = 5
-        self.hp = 100
-        self.max_hp = 100
+        
+        # --- BUFFED HEALTH VALUES (5x original health) ---
+        self.hp = 500          
+        self.max_hp = 500      
+        
         self.direction = "right"
         
         # Combat parameters
@@ -222,16 +225,16 @@ def main():
         pygame.draw.rect(screen, (15, 10, 20), (0, 0, SCREEN_WIDTH, 70))
         
         # Draw Player HP bar layout
-        hp_text = font_sub.render("HP:", True, COLOR_UI)
+        hp_text = font_sub.render(f"HP: {max(0, player.hp)} / {player.max_hp}", True, COLOR_UI)
         screen.blit(hp_text, (20, 22))
-        pygame.draw.rect(screen, (80, 20, 20), (60, 25, 200, 16)) # Red backing fill
+        pygame.draw.rect(screen, (80, 20, 20), (180, 25, 200, 16)) # Red backing fill
         player_hp_w = max(0, int(200 * (player.hp / player.max_hp)))
-        pygame.draw.rect(screen, (50, 220, 90), (60, 25, player_hp_w, 16)) # Live green foreground
+        pygame.draw.rect(screen, (50, 220, 90), (180, 25, player_hp_w, 16)) # Live green foreground
 
         # Draw HUD text elements
         score_surface = font_main.render(f"SCORE: {score}", True, COLOR_UI)
         wave_surface = font_main.render(f"WAVE: {wave}", True, (230, 180, 50))
-        screen.blit(score_surface, (360, 18))
+        screen.blit(score_surface, (420, 18))
         screen.blit(wave_surface, (740, 18))
 
         # Game Over Interface Overlay
